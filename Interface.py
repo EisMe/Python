@@ -704,17 +704,15 @@ class ModernGeorgianTTS(QMainWindow):
     
     def closeEvent(self, event):
         """Clean up when closing the application"""
-        # Stop any running audio worker
         if self.audio_worker and self.audio_worker.isRunning():
             self.audio_worker.terminate()
             self.audio_worker.wait()
         
-        # Clean up temporary audio file
         if os.path.exists(self.audio_file):
             try:
                 os.remove(self.audio_file)
             except OSError:
-                pass  # Ignore cleanup errors
+                pass
         
         event.accept()
 

@@ -17,7 +17,7 @@ from Constants.symbols import symbols_to_remove, symbols_to_expand
 def expand_abbreviations(text):
     """Expands abbreviations in the text using the abbrevs dictionary."""
     for abbrev, expansion in abbrevs.items():
-        pattern = re.escape(abbrev)  # Escape to handle dots and special chars
+        pattern = re.escape(abbrev)
         text = re.sub(pattern, expansion, text)
     return text
 
@@ -220,20 +220,16 @@ def preprocess_and_syllabify(text):
     all_syllables = []
     
     for word in words:
-        # Check if word ends with end-of-sentence punctuation
         has_eos = bool(re.search(r'[.!?]$', word))
         
-        # Remove punctuation from word before syllabification
         word_clean = re.sub(r'[.,!?;:"„"–]', '', word)
         
         if not word_clean:
             continue
             
-        # Syllabify the cleaned word
         sylls = syllabify_georgian(word_clean)
         all_syllables.extend(sylls)
         
-        # Add appropriate separator token
         if has_eos:
             all_syllables.append("<eos>")
         else:
@@ -241,112 +237,28 @@ def preprocess_and_syllabify(text):
     
     return all_syllables
 
-# def preprocess_and_syllabify(text):
-#     text = normalize_text(text)
-#     words = text.split()
-#     all_syllables = []
-#     for word in words:
-#         # Remove punctuation from word before syllabification
-#         word_clean = re.sub(r'[.,!?;:"„“–]', '', word)
-#         # lets separate these if end of sentece symobls are present add 
-#         if not word_clean:
-#             continue
-#         sylls = syllabify_georgian(word_clean)
-#         all_syllables.extend(sylls)
-#         all_syllables.append("<s>")
-#     return all_syllables
-
-
-# def synthesize_speech(syllables, db_path=None):
-#     if db_path is None:
-#         db_path = resource_path("tts_syllables.db")
-#     from pydub import AudioSegment, effects
-#     from pydub.silence import split_on_silence
-
-#     def prepare_segment(path):
-#         seg = AudioSegment.from_wav(path)
-#         # normalize volume
-#         seg = effects.normalize(seg)
-#         # trim leading/trailing silence
-#         chunks = split_on_silence(seg, min_silence_len=20, silence_thresh=-50, keep_silence=0)
-#         seg = chunks[0] if chunks else seg
-#         # apply tiny fades
-#         return seg.fade_in(10).fade_out(10)
-
-#     output = AudioSegment.silent(duration=50)
-#     for syl in syllables:
-#         if syl == "<s>":
-#             output = output.append(AudioSegment.silent(duration=100), crossfade=0)
-#             continue
-
-#         audio_path = get_syllable_audio_path(syl, db_path)
-#         if audio_path:
-#             try:
-#                 seg = prepare_segment(audio_path)
-#                 # append with a short crossfade
-#                 output = output.append(seg, crossfade=20)
-#             except Exception as e:
-#                 print(f"Error loading audio for syllable '{syl}': {e}")
-#                 output = output.append(AudioSegment.silent(duration=200), crossfade=0)
-#         else:
-#             print(f"Missing syllable: {syl}")
-#             output = output.append(AudioSegment.silent(duration=200), crossfade=0)
-
-#     return output
-
-
-# def synthesize_speech(syllables, db_path=None):
-#     if db_path is None:
-#         db_path = resource_path("tts_syllables.db")
-#     from pydub import AudioSegment
-#     output = AudioSegment.silent(duration=50)
-#     for syl in syllables:
-#         if syl == "<s>":
-#             output += AudioSegment.silent(duration=100)
-#             continue
-#         audio_path = get_syllable_audio_path(syl, db_path)
-#         if audio_path:
-#             try:
-#                 seg = AudioSegment.from_wav(audio_path)
-
-#                 output += seg
-#             except Exception as e:
-#                 print(f"Error loading audio for syllable '{syl}': {e}")
-#                 output += AudioSegment.silent(duration=200)
-#         else:
-#             print(f"Missing syllable: {syl}")
-#             output += AudioSegment.silent(duration=200)
-#     output = output.speedup(playback_speed=1.05, crossfade=50)
-#     return output
 def synthesize_speech(syllables, db_path=None):
     if db_path is None:
         db_path = resource_path("tts_syllables.db")
 
     def simple_crossfade(a, b, duration_ms=15):
-        # Use pydub's built-in crossfade - much simpler and safer
         return a.append(b, crossfade=duration_ms)
 
     def prepare_segment(path):
         seg = AudioSegment.from_wav(path)
-        # Normalize and remove DC/rumble
         seg = effects.normalize(seg).high_pass_filter(20)
-        # Trim silence edges more aggressively
         chunks = split_on_silence(seg, min_silence_len=15, silence_thresh=-45, keep_silence=0)
         seg = chunks[0] if chunks else seg
-        # Minimal fades
         return seg.fade_in(5).fade_out(5)
 
-    # Start with empty audio instead of silence
     output = AudioSegment.empty()
     
     for i, syl in enumerate(syllables):
         if syl == "<s>":
-            # Add shorter pauses for spaces (50ms instead of 100ms)
-            if len(output) > 0:  # Only add space if we have content
+            if len(output) > 0:
                 output = output + AudioSegment.silent(duration=100)
             continue
         if syl == "<eos>":
-            # Add end-of-sentence pause
             if len(output) > 0:
                 output = output + AudioSegment.silent(duration=400)
             continue
@@ -354,7 +266,6 @@ def synthesize_speech(syllables, db_path=None):
         path = get_syllable_audio_path(syl, db_path)
         if not path:
             print(f"Missing syllable: {syl}")
-            # Add shorter silence for missing syllables (100ms instead of 200ms)
             if len(output) > 0:
                 output = output + AudioSegment.silent(duration=100)
             continue
@@ -363,29 +274,17 @@ def synthesize_speech(syllables, db_path=None):
             seg = prepare_segment(path)
             
             if len(output) == 0:
-                # First segment - no crossfade needed
                 output = seg
             else:
-                # Use simple crossfade
                 output = simple_crossfade(output, seg, duration_ms=15)
                 
         except Exception as e:
             print(f"Error processing syllable '{syl}': {e}")
-            # Add shorter silence for errors
             if len(output) > 0:
                 output = output + AudioSegment.silent(duration=100)
 
-    # Only add room tone if we have audio content
     if len(output) > 0:
-        # Use quieter room tone
         noise = WhiteNoise().to_audio_segment(duration=len(output)).apply_gain(-35)
         output = output.overlay(noise)
     
     return output
-
-
-
-if __name__ == "__main__":
-    text = "ე.ი. შ.შ.მ., პირების"
-    text = normalize_text(text)
-    print(text)
