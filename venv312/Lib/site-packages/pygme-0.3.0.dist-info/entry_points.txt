@@ -1,0 +1,3 @@
+[console_scripts]
+pygme = pygme.__main__:main
+
