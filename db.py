@@ -24,7 +24,6 @@ def populate_syllable_db(db_path=None, audio_dir=None):
 def get_syllable_audio_path(syllable, db_path=None):
     if db_path is None:
         db_path = resource_path("tts_syllables.db")
-    # Build the full path to the syllable audio file using resource_path
     audio_file = resource_path(os.path.join("AudioDB", f"{syllable}.wav"))
     if os.path.exists(audio_file):
         return audio_file
