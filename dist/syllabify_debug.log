@@ -1,5 +1,0 @@
-[DEBUG] Word 'დედაააა' was broken into syllables: ['დე', 'და', 'ა', 'ა', 'ა']
-[DEBUG] Word 'დედა' was broken into syllables: ['დე', 'და']
-[DEBUG] Word 'დედაააააააააააააააააა' was broken into syllables: ['დე', 'და', 'ა', 'ა', 'ა', 'ა', 'ა', 'ა', 'ა', 'ა', 'ა', 'ა', 'ა', 'ა', 'ა', 'ა', 'ა', 'ა', 'ა']
-[DEBUG] Word 'კიბერნეტიკა' was broken into syllables: ['კი', 'ბერ', 'ნე', 'ტი', 'კა']
-[DEBUG] Word 'წიწილა' was broken into syllables: ['წი', 'წი', 'ლა']
